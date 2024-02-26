@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-class DataBaseConnectionMssqlSerializer(serializers.Serializer):
+class MssqlFindDataBaseSerializer(serializers.Serializer):
     server = serializers.RegexField(
         regex=r'^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'
     )
@@ -10,3 +10,11 @@ class DataBaseConnectionMssqlSerializer(serializers.Serializer):
     )
     username = serializers.CharField(max_length=100)
     password = serializers.CharField(max_length=100)
+
+
+class MssqlFindTableSerializer(MssqlFindDataBaseSerializer):
+    database = serializers.CharField(max_length=100)
+
+
+class MssqlFindFieldsSerializer(MssqlFindTableSerializer):
+    table = serializers.CharField(max_length=100)

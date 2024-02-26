@@ -1,11 +1,11 @@
 class Message:
-    def __init__(self, text_message, status):
-        self.text_message = text_message
+    def __init__(self, message, status):
+        self.message = message
         self.status = status
 
     def result_message(self):
         message = dict(
-            message=self.text_message,
+            message=self.message,
             status=self.status
         )
         return message

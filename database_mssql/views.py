@@ -1,43 +1,130 @@
-import pyodbc
 import pandas as pd
 from rest_framework import status
 from utils.messaga import Message
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializer import DataBaseConnectionMssqlSerializer
+from utils.mssql.test_connection import TestConnection
+from .serializer import MssqlFindDataBaseSerializer, MssqlFindTableSerializer, MssqlFindFieldsSerializer
 
 
-class DataBaseMssqlView(APIView):
+class MssqlFindDatabaseView(APIView):
     def post(self, request):
         try:
-            serializer = DataBaseConnectionMssqlSerializer(data=request.data)
+            serializer = MssqlFindDataBaseSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             server = serializer.validated_data.get('server')
             port = serializer.validated_data.get('port')
             username = serializer.validated_data.get('username')
             password = serializer.validated_data.get('password')
-            try:
-                connection = pyodbc.connect(
-                    f'DRIVER={{SQL Server}}; SERVER={server}; PORT={port}; UID={username}; PWD={password}')
-            except:
-                message = Message(
-                    text_message='Connection Failed',
-                    status=False
-                ).result_message()
-                return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
-            query = '''SELECT database_id, name FROM sys.databases'''
+            connection = TestConnection(
+                server=server,
+                port=port,
+                username=username,
+                password=password,
+                database_name=None
+            ).connect()
+
+            if connection['status']:
+                connection = connection['message']
+            else:
+                return Response(connection, status=status.HTTP_400_BAD_REQUEST)
+
+            query = '''SELECT database_id, name FROM sys.databases;'''
             connection_result = pd.read_sql_query(query, connection)
 
             message = Message(
-                text_message=connection_result.to_dict('records'),
+                message=connection_result.to_dict('records'),
                 status=True
             ).result_message()
             return Response(message, status=status.HTTP_200_OK)
 
         except Exception as exc:
             message = Message(
-                text_message=exc.args,
+                message=exc.args,
+                status=False
+            ).result_message()
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MssqlFindTableView(APIView):
+    def post(self, request):
+        try:
+            serializer = MssqlFindTableSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            server = serializer.validated_data.get('server')
+            port = serializer.validated_data.get('port')
+            username = serializer.validated_data.get('username')
+            password = serializer.validated_data.get('password')
+            database_name = serializer.validated_data.get('database')
+
+            connection = TestConnection(
+                server=server,
+                port=port,
+                username=username,
+                password=password,
+                database_name=database_name
+            ).connect()
+
+            if connection['status']:
+                connection = connection['message']
+            else:
+                return Response(connection, status=status.HTTP_400_BAD_REQUEST)
+
+            query = '''SELECT * FROM information_schema.tables;'''
+            connection_result = pd.read_sql_query(query, connection)
+
+            message = Message(
+                message=connection_result.to_dict('records'),
+                status=True
+            ).result_message()
+            return Response(message, status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            message = Message(
+                message=exc.args,
+                status=False
+            ).result_message()
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MssqlFindColumnView(APIView):
+    def post(self, request):
+        try:
+            serializer = MssqlFindFieldsSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            server = serializer.validated_data.get('server')
+            port = serializer.validated_data.get('port')
+            username = serializer.validated_data.get('username')
+            password = serializer.validated_data.get('password')
+            database_name = serializer.validated_data.get('database')
+            table_name = serializer.validated_data.get('table')
+
+            connection = TestConnection(
+                server=server,
+                port=port,
+                username=username,
+                password=password,
+                database_name=database_name
+            ).connect()
+
+            if connection['status']:
+                connection = connection['message']
+            else:
+                return Response(connection, status=status.HTTP_400_BAD_REQUEST)
+
+            query = f'''SELECT * FROM {table_name};'''
+            connection_result = pd.read_sql_query(query, connection)
+
+            message = Message(
+                message=connection_result.columns,
+                status=True
+            ).result_message()
+            return Response(message, status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            message = Message(
+                message=exc.args,
                 status=False
             ).result_message()
             return Response(message, status=status.HTTP_400_BAD_REQUEST)

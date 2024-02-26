@@ -1,0 +1,8 @@
+.venv
+venv/
+.env/
+config/.env/
+.idea
+.idea/
+.env
+config/.env

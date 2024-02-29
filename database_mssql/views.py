@@ -114,10 +114,32 @@ class MssqlFindColumnView(APIView):
                 return Response(connection, status=status.HTTP_400_BAD_REQUEST)
 
             query = f'''SELECT * FROM {table_name};'''
-            connection_result = pd.read_sql_query(query, connection)
+            query_type = f"""SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='{table_name}';"""
+            type_data = pd.read_sql_query(query_type, connection)
+            data = pd.read_sql_query(query, connection)
+            data = data.fillna('')
+
+            for key in type_data.values:
+                key[1] = key[1].replace('null', 'None')
+                key[1] = key[1].replace('bit', 'bool')
+                key[1] = key[1].replace('bigint', 'int')
+                key[1] = key[1].replace('bit', 'int')
+                key[1] = key[1].replace('float', 'float')
+                key[1] = key[1].replace('numeric', 'decimal.Decimal')
+                key[1] = key[1].replace('varchar', 'str')
+                key[1] = key[1].replace('nstr', 'str')
+                key[1] = key[1].replace('nvarchar', 'str')
+                key[1] = key[1].replace('varbinary', 'bytes')
+                key[1] = key[1].replace('date', 'datetime.date')
+                key[1] = key[1].replace('time', 'datetime.time')
+                key[1] = key[1].replace('datetime', 'datetime.datetime')
+                key[1] = key[1].replace('uniqueidentifier', 'uuid.UUID')
 
             message = Message(
-                message=connection_result.columns,
+                message=dict(
+                    data=data.to_dict('records'),
+                    type=type_data.to_dict('records')
+                ),
                 status=True
             ).result_message()
             return Response(message, status=status.HTTP_200_OK)
